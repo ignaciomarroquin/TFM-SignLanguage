@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Language Detector</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f2f4f8, #dbe9f4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      background: white;
+      padding: 40px 50px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .left, .right {
+      flex: 1;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+    }
+
+    .prediction {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .letter-select {
+      margin-bottom: 10px;
+    }
+
+    .example-img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+    }
+    .info-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 1000;
+}
+.info-button:hover {
+  background: #2980b9;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1001;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 600px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  text-align: left;
+  color: #333;
+}
+
+.modal-content a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+.modal-content a:hover {
+  text-decoration: underline;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.close:hover {
+  color: #000;
+}
+
+  </style>
+</head>
+<body>
+<!-- Info Button -->
+<button class="info-button" onclick="toggleModal()">ℹ️ Info</button>
+
+<!-- Modal Window -->
+<div id="infoModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="toggleModal()">&times;</span>
+    <h2>About This Project</h2>
+    <p>
+      This web application was created as part of my Final Degree Project (TFM) to demonstrate the real-time recognition of Spanish Sign Language letters using a deep learning model.
+      <br><br>
+      It detects hand gestures through webcam input, extracts keypoints using MediaPipe, and classifies them using a CNN trained specifically for this task.
+      <br><br>
+      <strong>Reference images:</strong><br>
+      The letter examples shown are sourced from:
+      <a href="https://www.cnse.es/lseaula/recursos-linguisticos/dactilologico.php" target="_blank">
+        CNSE - Dactilológico LSE
+      </a>.
+    </p>
+  </div>
+</div>
+
+  <div class="container">
+    <div class="left">
+      <h1>Sign Language Detector</h1>
+      <p>Show a letter with your hand</p>
+      <video id="video" autoplay playsinline muted></video>
+      <div class="prediction" id="prediction">Waiting for prediction...</div>
+    </div>
+    <div class="right">
+      <h2>How to sign it</h2>
+      <select id="letterSelect" class="letter-select">
+        <option disabled selected>Select a letter</option>
+        <option>A</option><option>B</option><option>C</option><option>CH</option><option>D</option><option>E</option>
+        <option>F</option><option>G</option><option>H</option><option>I</option><option>K</option><option>L</option>
+        <option>M</option><option>N</option><option>O</option><option>P</option><option>Q</option><option>R</option>
+        <option>S</option><option>T</option><option>U</option><option>W</option><option>X</option>
+      </select>
+      <br>
+      <img id="exampleImg" class="example-img" src="" alt="Letter example will appear here">
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const predictionDiv = document.getElementById('prediction');
+    const socket = new WebSocket(`wss://${window.location.host}/ws`);
+    const letterSelect = document.getElementById('letterSelect');
+    const exampleImg = document.getElementById('exampleImg');
+
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      setInterval(() => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+          if (blob) socket.send(blob);
+        }, 'image/jpeg');
+      }, 500);
+    });
+
+    socket.onmessage = event => {
+      predictionDiv.textContent = event.data;
+    };
+
+    letterSelect.addEventListener('change', () => {
+      const selected = letterSelect.value;
+      const url = `/example_imgs/${selected}.webp`;
+      exampleImg.src = url;
+      exampleImg.alt = `Sign language for ${selected}`;
+    });
+    function toggleModal() {
+  const modal = document.getElementById("infoModal");
+  modal.style.display = (modal.style.display === "block") ? "none" : "block";
+}
+
+window.onclick = function(event) {
+  const modal = document.getElementById("infoModal");
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+  </script>
+</body>
+</html>
