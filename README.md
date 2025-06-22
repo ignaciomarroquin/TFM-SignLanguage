@@ -11,3 +11,5 @@ keypoints.ipynb: A Jupyter Notebook demonstrating how additional datasets were g
 main_code_TFM.ipynb and forlongtraings.py: These are equivalent scripts (in notebook and .py formats). They represent the core training pipeline used for running all model training experiments.
 
 evaluarbestmodels.py: A helper script designed to generate cleaner confusion matrices and verify that the models saved during training (from forlongtraings.py) were indeed the best-performing ones. It also checks that the metrics tracked via Neptune correspond to the correct model checkpoints.
+
+The video demonstration and larger files (including the best-performing model) can be found in the following Drive folder: https://drive.google.com/drive/folders/1iqzvulGCODJDwiFUzNq32znBACISQJgg?usp=drive_link
